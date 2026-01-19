@@ -1,0 +1,51 @@
+[33m79b8e0f[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m)[m HEAD@{0}: commit: backend changes
+[33m54651ee[m HEAD@{1}: commit: backend changes
+[33m614345e[m HEAD@{2}: rebase (finish): returning to refs/heads/main
+[33m614345e[m HEAD@{3}: commit: electron
+[33mbc1ac01[m HEAD@{4}: commit: electron
+[33mbaa679c[m[33m ([m[1;31morigin/main[m[33m)[m HEAD@{5}: pull origin main --rebase (start): checkout baa679cb97914567adc4c8630c95a4a4979dc0e0
+[33ma63f698[m HEAD@{6}: commit: electron
+[33m5b72dc2[m HEAD@{7}: commit: render changes
+[33m927ca19[m HEAD@{8}: commit: render changes
+[33m99bd12e[m HEAD@{9}: pull origin main --rebase: Fast-forward
+[33mf96e677[m HEAD@{10}: commit: render changes
+[33m95a5120[m HEAD@{11}: commit: legal notice done
+[33m2c7820f[m HEAD@{12}: commit: Login in
+[33m8005f1a[m HEAD@{13}: commit: Login in
+[33m4ed6f00[m HEAD@{14}: pull origin main --rebase (finish): returning to refs/heads/main
+[33m4ed6f00[m HEAD@{15}: pull origin main --rebase (pick): Loan Records
+[33mf536ce9[m HEAD@{16}: pull origin main --rebase (start): checkout f536ce935de063cd12833b65f1a1713db8c49a03
+[33m3a79724[m HEAD@{17}: commit: Loan Records
+[33md7258cd[m HEAD@{18}: pull origin main --rebase: Fast-forward
+[33m3f8ab7e[m HEAD@{19}: commit: dist folder
+[33me13e0da[m HEAD@{20}: commit: requirement txt
+[33m482f883[m HEAD@{21}: pull origin main --rebase: Fast-forward
+[33mff18d59[m HEAD@{22}: commit: profile database
+[33m3adb4f4[m HEAD@{23}: pull origin main --rebase: Fast-forward
+[33m8cda85c[m HEAD@{24}: commit: profile database
+[33m043cd44[m HEAD@{25}: pull origin main --rebase: Fast-forward
+[33m9226e0a[m HEAD@{26}: commit: Dashboard
+[33m3d8d155[m HEAD@{27}: pull origin main --rebase (finish): returning to refs/heads/main
+[33m3d8d155[m HEAD@{28}: pull origin main --rebase (pick): Dashboard
+[33m1ffd279[m HEAD@{29}: pull origin main --rebase (start): checkout 1ffd27906f950ef37fdefa0848f36782ece71505
+[33m13ab259[m HEAD@{30}: commit: Dashboard
+[33md62fbd7[m HEAD@{31}: commit: Dashboard
+[33m92e04e5[m HEAD@{32}: pull origin main --rebase (finish): returning to refs/heads/main
+[33m92e04e5[m HEAD@{33}: pull origin main --rebase (pick): Execl Worksheet
+[33m2fcc8f2[m HEAD@{34}: pull origin main --rebase (start): checkout 2fcc8f24b43932ec5c6f696f55e58c1647a08b49
+[33ma8e06d4[m HEAD@{35}: commit: Execl Worksheet
+[33m10a6650[m HEAD@{36}: commit: Execl Worksheet
+[33m71adb88[m HEAD@{37}: commit: Customer Profile
+[33m35e875e[m HEAD@{38}: commit: Documents Uploads
+[33mbff81c5[m HEAD@{39}: commit: Data base working
+[33mb1d3f4d[m HEAD@{40}: rebase (finish): returning to refs/heads/main
+[33mb1d3f4d[m HEAD@{41}: rebase (continue): Data base working
+[33m8354ae9[m HEAD@{42}: pull origin main --rebase (start): checkout 8354ae96148d5210f8cb3cb9653b57c94cc4012a
+[33m4b0dee3[m HEAD@{43}: commit: Data base working
+[33m954f351[m HEAD@{44}: pull origin main: Fast-forward
+[33m4bc0296[m HEAD@{45}: commit: Finsiedh Fastapi connection
+[33m0f5b3d8[m HEAD@{46}: pull origin main: Fast-forward
+[33m964ff5d[m HEAD@{47}: commit: Api code
+[33m001de8e[m HEAD@{48}: pull origin main: Fast-forward
+[33m8c66d98[m HEAD@{49}: Branch: renamed refs/heads/master to refs/heads/main
+[33m8c66d98[m HEAD@{51}: commit (initial): Initial commit

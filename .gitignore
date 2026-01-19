@@ -1,0 +1,45 @@
+# ===============================
+# 🔐 SECRETS (NEVER COMMIT)
+# ===============================
+
+.env
+
+# ===============================
+# 🐍 PYTHON
+# ===============================
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+backend/service-account.json
+# ===============================
+# 📦 NODE / FRONTEND
+# ===============================
+node_modules/
+dist/
+dist-ssr/
+*.local
+
+# ===============================
+# 🧾 LOGS
+# ===============================
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ===============================
+# 🛠️ EDITORS / OS
+# ===============================
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

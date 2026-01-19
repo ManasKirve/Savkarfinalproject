@@ -1,0 +1,112 @@
+[33m95cb132[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m Remove release artifacts from git history
+[33mcace103[m Clean repo: remove build/release from history
+[33mefbded0[m Remove build executables and fix gitignore
+[33mc5114c2[m Local push
+[33m86050ee[m Local push
+[33m5acfc55[m electron
+[33m5b72dc2[m render changes
+[33m927ca19[m render changes
+[33m99bd12e[m toggle removed
+[33md0aadf2[m refresh page code added
+[33m9905de0[m refresh error
+[33mf96e677[m render changes
+[33m95a5120[m legal notice done
+[33m2c7820f[m Login in
+[33m8005f1a[m Login in
+[33m4ed6f00[m Loan Records
+[33mf536ce9[m added password
+[33md7258cd[m removed consoles
+[33m4b2d6e4[m Merge branch 'main' of https://github.com/ManasKirve/Savkarproject
+[33mb3a880d[m password change
+[33m3f8ab7e[m dist folder
+[33me13e0da[m requirement txt
+[33m482f883[m due date filter
+[33mf669521[m removed dummy data
+[33mff18d59[m profile database
+[33m3adb4f4[m added api for paid amount
+[33m8cda85c[m profile database
+[33m043cd44[m pagination for dashboard table
+[33m9226e0a[m Dashboard
+[33m3d8d155[m Dashboard
+[33m1ffd279[m layout changes
+[33ma87125e[m jamindar changes
+[33mac7c9e9[m Merge branch 'main' of https://github.com/ManasKirve/Savkarproject
+[33mc3fdd14[m removed default data
+[33md62fbd7[m Dashboard
+[33m92e04e5[m Execl Worksheet
+[33m2fcc8f2[m added jamindar details
+[33m10a6650[m Execl Worksheet
+[33m71adb88[m Customer Profile
+[33m35e875e[m Documents Uploads
+[33mbff81c5[m Data base working
+[33mb1d3f4d[m Data base working
+[33m8354ae9[m design change
+[33m28a66b8[m created profile with new page
+[33m954f351[m changes in table from dashboard
+[33m9f31d0b[m made changes in calculator
+[33m4bc0296[m Finsiedh Fastapi connection
+[33m0f5b3d8[m resolved conflict
+[33m7667c31[m interest calculator added
+[33m964ff5d[m Api code
+[33m001de8e[m navigation
+[33m4b32531[m Added login page and route guard
+[33m476e45d[m logout btn
+[33m22fbd1c[m updated calculator
+[33mfe68c84[m loan calculator changes
+[33m8c66d98[m Initial commit
+[33m95cb132[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m Remove release artifacts from git history
+[33mcace103[m Clean repo: remove build/release from history
+[33mefbded0[m Remove build executables and fix gitignore
+[33mc5114c2[m Local push
+[33m86050ee[m Local push
+[33m5acfc55[m electron
+[33m5b72dc2[m render changes
+[33m927ca19[m render changes
+[33m99bd12e[m toggle removed
+[33md0aadf2[m refresh page code added
+[33m9905de0[m refresh error
+[33mf96e677[m render changes
+[33m95a5120[m legal notice done
+[33m2c7820f[m Login in
+[33m8005f1a[m Login in
+[33m4ed6f00[m Loan Records
+[33mf536ce9[m added password
+[33md7258cd[m removed consoles
+[33m4b2d6e4[m Merge branch 'main' of https://github.com/ManasKirve/Savkarproject
+[33mb3a880d[m password change
+[33m3f8ab7e[m dist folder
+[33me13e0da[m requirement txt
+[33m482f883[m due date filter
+[33mf669521[m removed dummy data
+[33mff18d59[m profile database
+[33m3adb4f4[m added api for paid amount
+[33m8cda85c[m profile database
+[33m043cd44[m pagination for dashboard table
+[33m9226e0a[m Dashboard
+[33m3d8d155[m Dashboard
+[33m1ffd279[m layout changes
+[33ma87125e[m jamindar changes
+[33mac7c9e9[m Merge branch 'main' of https://github.com/ManasKirve/Savkarproject
+[33mc3fdd14[m removed default data
+[33md62fbd7[m Dashboard
+[33m92e04e5[m Execl Worksheet
+[33m2fcc8f2[m added jamindar details
+[33m10a6650[m Execl Worksheet
+[33m71adb88[m Customer Profile
+[33m35e875e[m Documents Uploads
+[33mbff81c5[m Data base working
+[33mb1d3f4d[m Data base working
+[33m8354ae9[m design change
+[33m28a66b8[m created profile with new page
+[33m954f351[m changes in table from dashboard
+[33m9f31d0b[m made changes in calculator
+[33m4bc0296[m Finsiedh Fastapi connection
+[33m0f5b3d8[m resolved conflict
+[33m7667c31[m interest calculator added
+[33m964ff5d[m Api code
+[33m001de8e[m navigation
+[33m4b32531[m Added login page and route guard
+[33m476e45d[m logout btn
+[33m22fbd1c[m updated calculator
+[33mfe68c84[m loan calculator changes
+[33m8c66d98[m Initial commit

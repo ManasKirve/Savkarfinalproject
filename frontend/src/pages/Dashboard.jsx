@@ -1,0 +1,636 @@
+import React, { useState, useEffect } from "react";
+import ApiService from "../services/apiService";
+import * as XLSX from "xlsx";
+
+const Dashboard = () => {
+  const [allLoans, setAllLoans] = useState([]); // Store all loans data
+  const [loans, setLoans] = useState([]); // For display purposes
+  const [totalMonthlyEmi, setTotalMonthlyEmi] = useState(0);
+  const [statusFilter, setStatusFilter] = useState("All"); // All | Active | Closed | Pending
+  const [stats, setStats] = useState({
+    totalLoans: 0,
+    activeLoans: 0,
+    pendingLoans: 0,
+    closedLoans: 0,
+    totalAmount: 0,
+    collectedAmount: 0,
+    pendingAmount: 0,
+  });
+  const [gapCountLast31Days, setGapCountLast31Days] = useState(0);
+
+  // Filter, Sort, and Pagination states
+  const [fromDate, setFromDate] = useState("");
+  const [toDate, setToDate] = useState("");
+  const [sortOrder, setSortOrder] = useState("asc"); // asc | desc
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // Pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [recordsPerPage, setRecordsPerPage] = useState(10);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        const dashboardData = await ApiService.getDashboardSummary();
+
+        setStats({
+          totalLoans:
+            dashboardData.activeRecords +
+            dashboardData.pendingRecords +
+            dashboardData.closingRecords,
+          activeLoans: dashboardData.activeRecords,
+          pendingLoans: dashboardData.pendingRecords,
+          closedLoans: dashboardData.closingRecords,
+          totalAmount: dashboardData.totalLoanIssued,
+          collectedAmount: dashboardData.recoveredAmount,
+          pendingAmount: dashboardData.pendingAmount,
+        });
+
+        const loansData = await ApiService.getAllLoans();
+        setAllLoans(loansData);
+        setLoans(loansData);
+        
+        const gapCount = calculateGapCountLast31Days(loansData);
+        setGapCountLast31Days(gapCount);
+
+        const totalEmi = loansData.reduce(
+          (sum, loan) => sum + Number(loan.emi || 0),
+          0
+        );
+        setTotalMonthlyEmi(totalEmi);
+      } catch (err) {
+        console.error("Dashboard: Error fetching data:", err);
+        setError("Failed to load dashboard data. Please try again later.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  useEffect(() => {
+    let filtered = allLoans;
+
+    // Status Filter
+    if (statusFilter === "Active") {
+      filtered = filtered.filter((loan) => loan.status === "Active");
+    } else if (statusFilter === "Closed") {
+      filtered = filtered.filter((loan) => loan.status === "Closed");
+    } else if (statusFilter === "Pending") {
+      filtered = filtered.filter((loan) => loan.status === "Pending");
+    }
+
+    // Date Filter
+    filtered = filtered.filter((loan) => {
+      const dueDate = getDueDate(loan);
+      if (!fromDate && !toDate) return true;
+      if (!dueDate) return false;
+
+      const from = fromDate ? new Date(fromDate) : null;
+      const to = toDate ? new Date(toDate) : null;
+
+      if (from && to) return dueDate >= from && dueDate <= to;
+      if (from) return dueDate >= from;
+      if (to) return dueDate <= to;
+
+      return true;
+    });
+
+    // Sort
+    const sorted = [...filtered].sort((a, b) => {
+      const dueA = getDueDate(a);
+      const dueB = getDueDate(b);
+
+      if (!dueA && !dueB) return 0;
+      if (!dueA) return 1;
+      if (!dueB) return -1;
+
+      return sortOrder === "asc" ? dueA - dueB : dueB - dueA;
+    });
+
+    setLoans(sorted);
+    setCurrentPage(1);
+  }, [allLoans, fromDate, toDate, sortOrder, statusFilter]);
+
+const handleCardClick = (status) => {
+  setStatusFilter(status);
+
+  const card = document.getElementById(`card-${status}`);
+  card.classList.add("flash-highlight");
+
+  setTimeout(() => {
+    card.classList.remove("flash-highlight");
+  }, 1000);
+};
+
+  const getDueDate = (loan) => {
+    if (loan.status === "Closed") return null;
+    if (!loan.startDate) return null;
+
+    const start = new Date(loan.startDate);
+    const current = new Date();
+    const currentMonth = current.getMonth();
+    const currentYear = current.getFullYear();
+
+    // Check if the start date was the last day of its month
+    const lastDayOfStartMonth = new Date(
+      start.getFullYear(),
+      start.getMonth() + 1,
+      0
+    ).getDate();
+
+    const isLastDayOfMonth = start.getDate() === lastDayOfStartMonth;
+
+    // Generate due date for the current month
+    let dueDate;
+    if (isLastDayOfMonth) {
+      // If start date was last day → due date = last day of current month
+      dueDate = new Date(currentYear, currentMonth + 1, 0);
+    } else {
+      // Otherwise, keep same day number, but in current month/year
+      dueDate = new Date(currentYear, currentMonth, start.getDate());
+    }
+
+    return dueDate;
+  };
+
+  const calculateGapCountLast31Days = (loans) => {
+    const now = new Date();
+    const last31Days = new Date();
+    last31Days.setDate(now.getDate() - 31);
+
+    let count = 0;
+
+    loans.forEach((loan) => {
+      if (!loan.paymentRecords || !Array.isArray(loan.paymentRecords)) return;
+
+      loan.paymentRecords.forEach((record) => {
+        if (
+          record.status === "Gap" &&
+          record.date &&
+          new Date(record.date) >= last31Days
+        ) {
+          count++;
+        }
+      });
+    });
+
+    return count;
+  };
+
+  // Filter + Sort
+  useEffect(() => {
+    const filtered = allLoans.filter((loan) => {
+      const dueDate = getDueDate(loan);
+      if (!fromDate && !toDate) return true;
+      if (!dueDate) return false;
+      const from = fromDate ? new Date(fromDate) : null;
+      const to = toDate ? new Date(toDate) : null;
+
+      if (from && to) return dueDate >= from && dueDate <= to;
+      if (from) return dueDate >= from;
+      if (to) return dueDate <= to;
+      return true;
+    });
+
+    const sorted = [...filtered].sort((a, b) => {
+      const dueA = getDueDate(a);
+      const dueB = getDueDate(b);
+
+      if (!dueA && !dueB) return 0;
+      if (!dueA) return 1; // place loans without due dates at bottom
+      if (!dueB) return -1;
+
+      return sortOrder === "asc" ? dueA - dueB : dueB - dueA;
+    });
+
+    setLoans(sorted);
+    setCurrentPage(1); // reset to page 1 on filter/sort change
+  }, [allLoans, fromDate, toDate, sortOrder]);
+
+  // Pagination logic
+  const totalPages = Math.ceil(loans.length / recordsPerPage);
+  const indexOfLastRecord = currentPage * recordsPerPage;
+  const indexOfFirstRecord = indexOfLastRecord - recordsPerPage;
+  const currentLoans = loans.slice(indexOfFirstRecord, indexOfLastRecord);
+
+  const handlePageChange = (pageNumber) => setCurrentPage(pageNumber);
+
+  const handlePrevPage = () => {
+    if (currentPage > 1) setCurrentPage(currentPage - 1);
+  };
+
+  const handleNextPage = () => {
+    if (currentPage < totalPages) setCurrentPage(currentPage + 1);
+  };
+
+  const handleRecordsPerPageChange = (e) => {
+    setRecordsPerPage(Number(e.target.value));
+    setCurrentPage(1);
+  };
+
+  // Sort by Start Date
+  const sortByDate = () => {
+    setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+  };
+
+  // Export Excel function
+  const handleExportReport = () => {
+    const wb = XLSX.utils.book_new();
+
+    const excelData = loans.map((loan, index) => {
+      const dueDate = getDueDate(loan);
+      return {
+        "अ.क्र.": index + 1,
+        नाव: loan.borrowerName || "N/A",
+        रक्कम: `₹${Number(loan.emi || 0).toLocaleString("en-IN")}`,
+        दिनांक: dueDate ? dueDate.toLocaleDateString("en-GB") : "-",
+        "देय दिनांक": "",
+        "जमा दिनांक": "",
+        "जमा खाते": "",
+        "खा.क्र.": "",
+      };
+    });
+
+    const ws = XLSX.utils.json_to_sheet(excelData);
+
+    ws["!cols"] = [
+      { wch: 4 },
+      { wch: 25 },
+      { wch: 9 },
+      { wch: 11 },
+      { wch: 11 },
+      { wch: 11 },
+      { wch: 8 },
+      { wch: 6 },
+    ];
+
+    XLSX.utils.book_append_sheet(wb, ws, "Loans Report");
+    XLSX.writeFile(wb, "Loans_Report.xlsx");
+  };
+
+  if (loading)
+    return (
+      <div className="container p-4 text-center">
+        <div className="spinner-border text-primary"></div>
+        <p className="mt-3">Loading dashboard data...</p>
+      </div>
+    );
+
+  if (error)
+    return (
+      <div className="container p-4">
+        <div className="alert alert-danger">{error}</div>
+      </div>
+    );
+
+  return (
+    <div className="container p-4 dashboard-container">
+      {/* Header Section */}
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <h2>Dashboard Overview</h2>
+          <p className="text-muted mb-0">
+            Welcome back! Here's what's happening with your loans today.
+          </p>
+        </div>
+        <button
+          className="btn btn-outline-primary"
+          onClick={handleExportReport}>
+          <i className="fas fa-download me-2"></i>Export Report
+        </button>
+      </div>
+
+      <div className="row">
+        <div className="col-md-4 mb-3">
+          <div
+            id="card-All"
+            className="card stat-card stat-card-custom stat-card-primary cursor-pointer"
+            onClick={() => handleCardClick("All")}>
+            <div className="card-body stat-card-body">
+              <div className="d-flex justify-content-between align-items-center">
+                <div>
+                  <h6 className="card-title stat-card-title mb-0">
+                    Total Loans
+                  </h6>
+                  <h3 className="stat-card-value mb-0">{stats.totalLoans}</h3>
+                </div>
+                <div className="stat-card-icon">
+                  <i className="fas fa-file-contract"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="col-md-4 mb-3">
+          <div
+            id="card-Active"
+            className="card stat-card stat-card-custom stat-card-success cursor-pointer"
+            onClick={() => handleCardClick("Active")}>
+            <div className="card-body stat-card-body">
+              <div className="d-flex justify-content-between align-items-center">
+                <div>
+                  <h6 className="card-title stat-card-title mb-0">
+                    Active Loans
+                  </h6>
+                  <h3 className="stat-card-value mb-0">{stats.activeLoans}</h3>
+                </div>
+                <div className="stat-card-icon">
+                  <i className="fas fa-check-circle"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="col-md-4 mb-3">
+          <div
+            id="card-Gap"
+            className="card stat-card stat-card-custom stat-card-warning cursor-pointer"
+          >
+            <div className="card-body stat-card-body">
+              <div className="d-flex justify-content-between align-items-center">
+                <div>
+                  <h6 className="card-title stat-card-title mb-0">
+                    GAPs (Last 31 Days)
+                  </h6>
+                  <h3 className="stat-card-value mb-0">
+                    {gapCountLast31Days}
+                  </h3>
+                </div>
+                <div className="stat-card-icon">
+                  <i className="fas fa-exclamation-triangle"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="col-md-4 mb-3">
+          <div
+            id="card-Closed"
+            className="card stat-card stat-card-custom stat-card-danger cursor-pointer"
+            onClick={() => handleCardClick("Closed")}>
+            <div className="card-body stat-card-body">
+              <div className="d-flex justify-content-between align-items-center">
+                <div>
+                  <h6 className="card-title stat-card-title mb-0">Closed</h6>
+                  <h3 className="stat-card-value mb-0">{stats.closedLoans}</h3>
+                </div>
+                <div className="stat-card-icon">
+                  <i className="fas fa-archive"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Amount Statistics */}
+      <div className="row">
+        <div className="col-md-3 mb-3">
+          <div className="card amount-card">
+            <div className="card-body amount-card-body">
+              <h6 className="amount-card-title">Total Amount</h6>
+              <h4 className="amount-card-value primary">
+                ₹{stats.totalAmount.toLocaleString("en-IN")}
+              </h4>
+            </div>
+          </div>
+        </div>
+        <div className="col-md-3 mb-3">
+          <div className="card amount-card">
+            <div className="card-body amount-card-body">
+              <h6 className="amount-card-title">Collected</h6>
+              <h4 className="amount-card-value success">
+                ₹{stats.collectedAmount.toLocaleString("en-IN")}
+              </h4>
+            </div>
+          </div>
+        </div>
+        <div className="col-md-3 mb-3">
+          <div className="card amount-card">
+            <div className="card-body amount-card-body">
+              <h6 className="amount-card-title">Total Pending Amount</h6>
+              <h4 className="amount-card-value warning">
+                ₹{stats.pendingAmount.toLocaleString("en-IN")}
+              </h4>
+            </div>
+          </div>
+        </div>
+        <div className="col-md-3 mb-3">
+          <div className="card amount-card">
+            <div className="card-body amount-card-body">
+              <h6 className="amount-card-title">Monthly Pending Amount</h6>
+              <h4 className="amount-card-value warning">
+                ₹{totalMonthlyEmi.toLocaleString("en-IN")}
+              </h4>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* All Loans Table */}
+      <div className="card">
+        <div className="card-header d-flex justify-content-between align-items-center">
+          <h5 className="mb-0">All Loans</h5>
+
+          <div className="d-flex align-items-center gap-2">
+            <label className="fw-medium me-2">From:</label>
+            <input
+              type="date"
+              className="form-control form-control-sm"
+              value={fromDate}
+              onChange={(e) => setFromDate(e.target.value)}
+            />
+            <label className="fw-medium me-2">To:</label>
+            <input
+              type="date"
+              className="form-control form-control-sm"
+              value={toDate}
+              onChange={(e) => setToDate(e.target.value)}
+            />
+            <button
+              className="btn btn-sm btn-outline-secondary"
+              onClick={() => {
+                setFromDate("");
+                setToDate("");
+              }}>
+              Clear
+            </button>
+          </div>
+        </div>
+
+        <div className="card-body">
+          <div className="table-responsive">
+            <table className="table table-hover table-custom mb-0">
+              <thead>
+                <tr>
+                  <th>Customer Name</th>
+                  <th>Loan Type</th>
+                  <th>Amount</th>
+                  <th>Interest Rate</th>
+                  <th>EMI</th>
+                  <th>Start Date</th>
+                  <th onClick={sortByDate} className="cursor-pointer">
+                    Due Date
+                    <i
+                      className={`fas fa-sort-${
+                        sortOrder === "asc" ? "up" : "down"
+                      } ms-1`}></i>
+                  </th>
+                  <th>End Date</th>
+                  <th>Status</th>
+                  <th>Progress</th>
+                </tr>
+              </thead>
+              <tbody>
+                {currentLoans.length > 0 ? (
+                  currentLoans.map((loan) => {
+                    const dueDate = getDueDate(loan);
+                    const dueDateDisplay = dueDate
+                      ? dueDate.toLocaleDateString("en-GB")
+                      : "-";
+                    const endDateDisplay = new Date(
+                      loan.startDate
+                    ).toLocaleDateString("en-GB");
+
+                    return (
+                      <tr key={loan.id}>
+                        <td>
+                          <div>
+                            <div className="fw-medium">
+                              {loan.borrowerName || "N/A"}
+                            </div>
+                            <small className="text-muted">
+                              {loan.phoneNumber || "N/A"}
+                            </small>
+                          </div>
+                        </td>
+                        <td>{loan.loanType || "N/A"}</td>
+                        <td>₹{(loan.totalLoan || 0).toLocaleString("en-IN")}</td>
+                        <td>{loan.interestRate || 0}%</td>
+                        <td>₹{Number(loan.emi || 0).toLocaleString("en-IN")}</td>
+
+                        <td>
+                          {new Date(loan.startDate).toLocaleDateString("en-GB")}
+                        </td>
+                        <td>{dueDateDisplay}</td>
+                        <td>{endDateDisplay}</td>
+                        <td>
+                          <span
+                            className={`badge ${
+                              loan.status === "Active"
+                                ? "bg-success"
+                                : loan.status === "Closed"
+                                ? "bg-info"
+                                : loan.status === "Pending"
+                                ? "bg-warning"
+                                : "bg-secondary"
+                            }`}>
+                            {loan.status || "Unknown"}
+                          </span>
+                        </td>
+                        <td>
+                          <div className="progress">
+                            <div
+                              className={`progress-bar ${
+                                loan.status === "Closed"
+                                  ? "bg-success"
+                                  : loan.status === "Pending"
+                                  ? "bg-danger"
+                                  : "bg-primary"
+                              }`}
+                              style={{
+                                width: `${
+                                  loan.paidAmount && loan.totalLoan
+                                    ? (loan.paidAmount / loan.totalLoan) * 100
+                                    : 0
+                                }%`,
+                              }}></div>
+                          </div>
+                          <small>
+                            {loan.paidAmount && loan.totalLoan
+                              ? Math.round(
+                                  (loan.paidAmount / loan.totalLoan) * 100
+                                )
+                              : 0}
+                            % paid
+                          </small>
+                        </td>
+                      </tr>
+                    );
+                  })
+                ) : (
+                  <tr>
+                    <td colSpan="10" className="text-center text-muted py-3">
+                      No loans found for selected dates.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination Controls */}
+          {loans.length > 0 && (
+            <div className="d-flex justify-content-between align-items-center mt-3">
+              <div className="d-flex align-items-center gap-3">
+                <small className="text-muted">
+                  Showing {indexOfFirstRecord + 1}–
+                  {Math.min(indexOfLastRecord, loans.length)} of {loans.length}
+                  entries
+                </small>
+
+                <div className="d-flex align-items-center">
+                  <label className="me-2 text-muted">Rows per page:</label>
+                  <select
+                    className="form-select form-select-sm"
+                    style={{ width: "80px" }}
+                    value={recordsPerPage}
+                    onChange={handleRecordsPerPageChange}>
+                    <option value="5">5</option>
+                    <option value="10">10</option>
+                    <option value="25">25</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <button
+                  className="btn btn-sm btn-outline-primary me-2"
+                  onClick={handlePrevPage}
+                  disabled={currentPage === 1}>
+                  Previous
+                </button>
+                {Array.from({ length: totalPages }, (_, index) => (
+                  <button
+                    key={index + 1}
+                    className={`btn btn-sm ${
+                      currentPage === index + 1
+                        ? "btn-primary"
+                        : "btn-outline-primary"
+                    } me-1`}
+                    onClick={() => handlePageChange(index + 1)}>
+                    {index + 1}
+                  </button>
+                ))}
+                <button
+                  className="btn btn-sm btn-outline-primary ms-2"
+                  onClick={handleNextPage}
+                  disabled={currentPage === totalPages}>
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Dashboard;

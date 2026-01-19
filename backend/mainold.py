@@ -1,0 +1,714 @@
+from fastapi import FastAPI, HTTPException, Response
+from datetime import datetime
+from typing import List, Dict
+import uuid
+from fastapi.middleware.cors import CORSMiddleware
+from models import (
+    LoanRecord, LoanCreate, LoanUpdate,
+    LegalNotice, NoticeCreate, NoticeUpdate,
+    Transaction, TransactionCreate,
+    Document, DocumentCreate,
+    Profile, ProfileCreate, ProfileUpdate,
+    DashboardSummary,
+    PaymentMode, LoanStatus, NoticeStatus, TransactionType,
+    LoanType  # Added LoanType import
+)
+from deps import verify_firebase_token
+import firestore_repo
+try:
+    from firebase import init_firebase
+except Exception:
+    init_firebase = None
+from fastapi import Depends, Request
+import os
+import logging
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+app = FastAPI()
+
+# Fixed CORS middleware configuration
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],  
+    allow_headers=["*"],  
+)
+
+# Add test_firestore_connection function
+def test_firestore_connection():
+    try:
+        if init_firebase is None:
+            return False
+        app, db = init_firebase()
+        if not app or not db:
+            return False
+        # Try to access Firestore
+        test_collection = db.collection('test')
+        test_doc = test_collection.document('connection_test')
+        test_doc.set({'test': True, 'timestamp': datetime.utcnow()})
+        result = test_doc.get().to_dict()
+        # Clean up
+        test_doc.delete()
+        return True
+    except Exception as e:
+        logger.error(f"Firestore connection test failed: {e}")
+        return False
+
+# Initialize Firebase once at startup
+@app.on_event("startup")
+async def startup_event():
+    try:
+        if init_firebase:
+            print("Attempting to initialize Firebase...")
+            app, db = init_firebase()
+            if app and db:
+                logger.info("Firebase initialized successfully")
+                print("Firebase initialized successfully")
+                
+                # Test with actual user collection
+                try:
+                    # Use the savkar user ID
+                    test_doc = db.collection('users').document(firestore_repo.SAVKAR_USER_ID).get()
+                    if test_doc.exists:
+                        logger.info("Successfully accessed savkar user document")
+                        # Test accessing loans
+                        loans_ref = test_doc.reference.collection('loans')
+                        loans_count = len(list(loans_ref.stream()))
+                        logger.info(f"Found {loans_count} loans for savkar user")
+                    else:
+                        logger.info("Savkar user document not found, will create on first access")
+                except Exception as e:
+                    logger.error(f"Error accessing savkar user data: {e}")
+            else:
+                logger.error("Firebase initialization failed - app or db is None")
+                print("Firebase initialization failed")
+        else:
+            logger.error("Firebase module not available")
+            print("Firebase module not available")
+    except Exception as e:
+        logger.error(f"Error initializing Firebase: {e}")
+        print(f"Error initializing Firebase: {e}")
+
+# REMOVED: Sample data initialization - we'll use only Firestore data
+
+@app.get("/dashboard/summary", response_model=DashboardSummary)
+def get_dashboard_summary():
+    try:
+        # Get loans for the savkar user
+        logger.info("Getting dashboard summary from Firestore for savkar user")
+        
+        # Use the savkar user ID
+        savkar_user_id = firestore_repo.SAVKAR_USER_ID
+        loans_data = firestore_repo.get_loans_for_user(savkar_user_id)
+        
+        # Calculate summary statistics
+        total_loan_issued = sum(loan.get('totalLoan', 0) for loan in loans_data)
+        recovered_amount = sum(loan.get('paidAmount', 0) for loan in loans_data)
+        pending_amount = total_loan_issued - recovered_amount
+        
+        active_records = sum(1 for loan in loans_data if loan.get('status') == 'Active')
+        pending_records = sum(1 for loan in loans_data if loan.get('status') == 'Pending')
+        closing_records = sum(1 for loan in loans_data if loan.get('status') == 'Closed')
+        
+        logger.info(f"Dashboard summary calculated: total_loan_issued={total_loan_issued}, recovered_amount={recovered_amount}, pending_amount={pending_amount}")
+        logger.info(f"Loan counts: active={active_records}, pending={pending_records}, closed={closing_records}")
+        
+        return DashboardSummary(
+            total_loan_issued=total_loan_issued,
+            recovered_amount=recovered_amount,
+            pending_amount=pending_amount,
+            active_records=active_records,
+            pending_records=pending_records,
+            closing_records=closing_records
+        )
+        
+    except Exception as e:
+        logger.error(f"Error getting dashboard summary: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get dashboard summary: {str(e)}")
+
+# Global endpoints that query ALL loans from Firestore
+@app.get("/loans", response_model=List[LoanRecord])
+def get_all_loans():
+    try:
+        # Get loans for the savkar user
+        logger.info("Getting all loans from Firestore for savkar user")
+        
+        # Use the savkar user ID
+        savkar_user_id = firestore_repo.SAVKAR_USER_ID
+        loans_data = firestore_repo.get_loans_for_user(savkar_user_id)
+        
+        # Convert to LoanRecord objects
+        loan_records = []
+        for loan_dict in loans_data:
+            try:
+                # Use the converted data (camelCase) to create LoanRecord
+                loan_record = LoanRecord(**loan_dict)
+                loan_records.append(loan_record)
+            except Exception as e:
+                logger.error(f"Error converting loan data to LoanRecord: {e}")
+                logger.error(f"Problematic data: {loan_dict}")
+                continue
+        
+        logger.info(f"Retrieved {len(loan_records)} loans from Firestore")
+        return loan_records
+        
+    except Exception as e:
+        logger.error(f"Error getting loans from Firestore: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get loans: {str(e)}")
+
+@app.post("/loans", response_model=LoanRecord)
+def create_loan(loan: LoanCreate):
+    try:
+        # Create loan for the savkar user
+        savkar_user_id = firestore_repo.SAVKAR_USER_ID
+        # Use dict(by_alias=False) to get snake_case field names for Firestore
+        data = loan.dict(by_alias=False)
+        
+        saved = firestore_repo.create_loan_for_user(savkar_user_id, data)
+        
+        return saved
+        
+    except Exception as e:
+        logger.error(f"Error creating loan in Firestore: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to create loan: {e}")
+
+@app.put("/loans/{loan_id}", response_model=LoanRecord)
+def update_loan(loan_id: str, loan_update: LoanUpdate):
+    try:
+        # Update loan for the savkar user
+        savkar_user_id = firestore_repo.SAVKAR_USER_ID
+        # Use dict(by_alias=False) to get snake_case field names for Firestore
+        update_data = loan_update.dict(by_alias=False, exclude_unset=True)
+        
+        updated = firestore_repo.update_loan_for_user(savkar_user_id, loan_id, update_data)
+        
+        if not updated:
+            raise HTTPException(status_code=404, detail="Loan not found")
+            
+        return updated
+        
+    except Exception as e:
+        logger.error(f"Error updating loan in Firestore: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to update loan: {e}")
+
+@app.delete("/loans/{loan_id}")
+def delete_loan(loan_id: str):
+    try:
+        # Delete loan for the savkar user
+        savkar_user_id = firestore_repo.SAVKAR_USER_ID
+        firestore_repo.delete_loan_for_user(savkar_user_id, loan_id)
+        return {"message": "Loan deleted successfully"}
+        
+    except Exception as e:
+        logger.error(f"Error deleting loan in Firestore: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete loan: {e}")
+
+@app.get("/loans/{loan_id}/documents", response_model=List[Document])
+def get_loan_documents(loan_id: str):
+    try:
+        # Get documents for the savkar user
+        savkar_user_id = firestore_repo.SAVKAR_USER_ID
+        docs_data = firestore_repo.get_documents_for_user(savkar_user_id, loan_id)
+        
+        return docs_data
+        
+    except Exception as e:
+        logger.error(f"Error getting documents from Firestore: {e}")
+        return []
+
+@app.post("/documents", response_model=Document)
+def create_document(document: DocumentCreate):
+    try:
+        # Create document for the savkar user
+        savkar_user_id = firestore_repo.SAVKAR_USER_ID
+        # Use dict(by_alias=False) to get snake_case field names for Firestore
+        data = document.dict(by_alias=False)
+        
+        saved = firestore_repo.create_document_for_user(savkar_user_id, data)
+        
+        return saved
+        
+    except Exception as e:
+        logger.error(f"Error creating document in Firestore: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to create document: {e}")
+
+@app.delete("/documents/{doc_id}")
+def delete_document(doc_id: str):
+    try:
+        # Delete document for the savkar user
+        savkar_user_id = firestore_repo.SAVKAR_USER_ID
+        firestore_repo.delete_document_for_user(savkar_user_id, doc_id)
+        return {"message": "Document deleted successfully"}
+        
+    except Exception as e:
+        logger.error(f"Error deleting document in Firestore: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete document: {e}")
+
+# New endpoint to get document file content
+@app.get("/documents/{doc_id}/file")
+async def get_document_file(doc_id: str):
+    """Get document file content by document ID"""
+    try:
+        savkar_user_id = firestore_repo.SAVKAR_USER_ID
+        
+        # Get the document
+        doc = firestore_repo._docs_col(savkar_user_id).document(doc_id).get()
+        if not doc.exists:
+            raise HTTPException(status_code=404, detail="Document not found")
+            
+        doc_data = doc.to_dict()
+        file_content = doc_data.get('file_content', '')
+        file_name = doc_data.get('file_name', 'document')
+        
+        # Check if the content is a base64 data URL
+        if file_content.startswith('data:'):
+            # Extract the MIME type and base64 data
+            import base64
+            header, encoded = file_content.split(',', 1)
+            mime_type = header.split(':')[1].split(';')[0]
+            
+            # Decode the base64 content
+            binary_data = base64.b64decode(encoded)
+            
+            # Return the file with proper content type
+            return Response(
+                content=binary_data, 
+                media_type=mime_type,
+                headers={
+                    "Content-Disposition": f"inline; filename={file_name}"
+                }
+            )
+        else:
+            # If it's not a data URL, return as plain text
+            return Response(
+                content=file_content, 
+                media_type="text/plain",
+                headers={
+                    "Content-Disposition": f"attachment; filename={file_name}"
+                }
+            )
+        
+    except Exception as e:
+        logger.error(f"Error getting document file: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+# Profile endpoints
+@app.get("/loans/{loan_id}/profile", response_model=Profile)
+def get_loan_profile(loan_id: str):
+    try:
+        # Get profile for the savkar user
+        savkar_user_id = firestore_repo.SAVKAR_USER_ID
+        profile_data = firestore_repo.get_profile_for_loan(savkar_user_id, loan_id)
+        
+        if not profile_data:
+            # Return a default profile if none exists
+            return Profile(
+                id="",
+                loan_id=loan_id,
+                occupation="",
+                address="",
+                profile_photo="",
+                addressAsPerAadhar="",
+                nave="",
+                haste="",
+                purava="",
+                permanentAddress="",
+                jamindars=[],
+                createdAt=datetime.utcnow(),
+                updatedAt=datetime.utcnow()
+            )
+        
+        return profile_data
+        
+    except Exception as e:
+        logger.error(f"Error getting profile from Firestore: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to get profile: {str(e)}")
+
+@app.post("/loans/{loan_id}/profile", response_model=Profile)
+def create_loan_profile(loan_id: str, profile: ProfileCreate):
+    try:
+        # Create profile for the savkar user
+        savkar_user_id = firestore_repo.SAVKAR_USER_ID
+        # Use dict(by_alias=False) to get snake_case field names for Firestore
+        data = profile.dict(by_alias=False)
+        data['loan_id'] = loan_id
+        
+        saved = firestore_repo.create_profile_for_user(savkar_user_id, data)
+        
+        return saved
+        
+    except Exception as e:
+        logger.error(f"Error creating profile in Firestore: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to create profile: {str(e)}")
+
+@app.put("/loans/{loan_id}/profile", response_model=Profile)
+def update_loan_profile(loan_id: str, profile_update: ProfileUpdate):
+    try:
+        logger.info(f"Updating profile for loan {loan_id}")
+        # Get existing profile for the savkar user
+        savkar_user_id = firestore_repo.SAVKAR_USER_ID
+        existing_profile = firestore_repo.get_profile_for_loan(savkar_user_id, loan_id)
+        
+        logger.info(f"Existing profile: {existing_profile}")
+        
+        if not existing_profile:
+            logger.info("No existing profile, creating a new one")
+            # Create a new profile if none exists
+            data = profile_update.dict(by_alias=False, exclude_unset=True)
+            data['loan_id'] = loan_id
+            saved = firestore_repo.create_profile_for_user(savkar_user_id, data)
+            return saved
+        
+        logger.info("Existing profile found, updating it")
+        # Update existing profile
+        profile_id = existing_profile['id']
+        logger.info(f"Profile ID to update: {profile_id}")
+        update_data = profile_update.dict(by_alias=False, exclude_unset=True)
+        logger.info(f"Update data: {update_data}")
+        
+        updated = firestore_repo.update_profile_for_user(savkar_user_id, profile_id, update_data)
+        
+        return updated
+        
+    except Exception as e:
+        logger.error(f"Error updating profile in Firestore: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to update profile: {str(e)}")
+
+@app.get("/notices", response_model=List[LegalNotice])
+def get_notices(request: Request, uid: str = None):
+    uid = uid or request.headers.get('x-dev-uid')
+    if not uid:
+        return []
+    try:
+        return firestore_repo.get_notices_for_user(uid)
+    except Exception as e:
+        logger.error(f"Error getting notices from Firestore: {e}")
+        return []
+
+@app.put('/users/me/loans/{loan_id}')
+def update_my_loan(loan_id: str, request: Request, loan_update: LoanUpdate, uid: str = None):
+    uid = uid or request.headers.get('x-dev-uid')
+    if not uid:
+        raise HTTPException(status_code=400, detail="User ID (uid) is required for user-specific operations")
+    
+    try:
+        # Use dict(by_alias=False) to get snake_case field names for Firestore
+        update_data = loan_update.dict(by_alias=False, exclude_unset=True)
+        updated = firestore_repo.update_loan_for_user(uid, loan_id, update_data)
+        return updated
+    except Exception as e:
+        logger.error(f"Error updating loan in Firestore: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to update loan: {e}")
+
+@app.delete('/users/me/loans/{loan_id}')
+def delete_my_loan(loan_id: str, request: Request, uid: str = None):
+    uid = uid or request.headers.get('x-dev-uid')
+    if not uid:
+        raise HTTPException(status_code=400, detail="User ID (uid) is required for user-specific operations")
+    
+    try:
+        firestore_repo.delete_loan_for_user(uid, loan_id)
+        return {"message": "Loan deleted successfully"}
+    except Exception as e:
+        logger.error(f"Error deleting loan in Firestore: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete loan: {e}")
+
+@app.delete('/users/me/documents/{doc_id}')
+def delete_my_document(doc_id: str, request: Request, uid: str = None):
+    uid = uid or request.headers.get('x-dev-uid')
+    if not uid:
+        raise HTTPException(status_code=400, detail="User ID (uid) is required for user-specific operations")
+    
+    try:
+        firestore_repo.delete_document_for_user(uid, doc_id)
+        return {"message": "Document deleted successfully"}
+    except Exception as e:
+        logger.error(f"Error deleting document in Firestore: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete document: {e}")
+
+# Per-user endpoints
+@app.get('/users/me/loans', response_model=List[LoanRecord])
+def get_my_loans(request: Request, uid: str = None):
+    uid = uid or request.headers.get('x-dev-uid')
+    if not uid:
+        raise HTTPException(status_code=400, detail="User ID (uid) is required")
+    
+    try:
+        logger.info(f"Getting loans for user {uid} from Firestore")
+        loans_data = firestore_repo.get_loans_for_user(uid)
+        loan_records = []
+        for loan_dict in loans_data:
+            loan_record = LoanRecord(**loan_dict)
+            loan_records.append(loan_record)
+        
+        return loan_records
+    except Exception as e:
+        logger.error(f"Error getting loans from Firestore: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to load loans: {e}")
+
+@app.post('/users/me/loans')
+def create_my_loan(request: Request, loan: LoanCreate, uid: str = None):
+    uid = uid or request.headers.get('x-dev-uid')
+    if not uid:
+        raise HTTPException(status_code=400, detail="User ID (uid) is required")
+    
+    # Use dict(by_alias=False) to get snake_case field names for Firestore
+    data = loan.dict(by_alias=False)
+    try:
+        logger.info(f"Creating loan for user {uid} in Firestore")
+        saved = firestore_repo.create_loan_for_user(uid, data)
+        return saved
+    except Exception as e:
+        logger.error(f"Error creating loan in Firestore: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to create loan: {e}")
+
+@app.get('/users/me/loans/{loan_id}/documents')
+def get_my_loan_documents(loan_id: str, request: Request, uid: str = None):
+    uid = uid or request.headers.get('x-dev-uid')
+    if not uid:
+        raise HTTPException(status_code=400, detail="User ID (uid) is required")
+    
+    try:
+        logger.info(f"Getting documents for loan {loan_id} of user {uid} from Firestore")
+        docs = firestore_repo.get_documents_for_user(uid, loan_id)
+        return docs
+    except Exception as e:
+        logger.error(f"Error getting documents from Firestore: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to load documents: {e}")
+
+@app.post('/users/me/documents')
+def create_my_document(document: DocumentCreate, request: Request, uid: str = None):
+    uid = uid or request.headers.get('x-dev-uid')
+    if not uid:
+        raise HTTPException(status_code=400, detail="User ID (uid) is required.")
+    
+    # Use dict(by_alias=False) to get snake_case field names for Firestore
+    data = document.dict(by_alias=False)
+    try:
+        logger.info(f"Creating document for user {uid} in Firestore")
+        saved = firestore_repo.create_document_for_user(uid, data)
+        return saved
+    except Exception as e:
+        logger.error(f"Error creating document in Firestore: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to create document: {e}")
+
+# Add health check endpoint
+@app.get("/health")
+def health_check():
+    return {"status": "healthy", "firebase": "initialized" if init_firebase else "not initialized"}
+
+
+@app.get("/debug/firestore")
+def debug_firestore():
+    try:
+        _, db = init_firebase()
+        if not db:
+            return {"error": "Firebase not initialized"}
+            
+        # Test accessing the savkar user
+        user_id = firestore_repo.SAVKAR_USER_ID
+        user_ref = db.collection('users').document(user_id)
+        user_doc = user_ref.get()
+        
+        if not user_doc.exists:
+            return {"error": f"Savkar user document not found for ID: {user_id}"}
+            
+        # Test accessing loans
+        loans_ref = user_ref.collection('loans')
+        loans = []
+        for doc in loans_ref.stream():
+            loan_data = doc.to_dict()
+            loan_data['id'] = doc.id
+            loans.append(loan_data)
+        
+        return {
+            "user_id": user_id,
+            "user_exists": True,
+            "loans_count": len(loans),
+            "loans": loans,
+            "sample_loan": loans[0] if loans else None
+        }
+    except Exception as e:
+        return {"error": str(e)}
+
+
+def update_paid_amount_for_user(uid: str, loan_id: str, paid_amount: float) -> LoanRecord:
+    """
+    Update only the paid amount for a user's loan and adjust the status.
+    Automatically sets 'closed_at' when loan is fully paid.
+    """
+    try:
+        col = firestore_repo._loans_col(uid)
+        if not col:
+            logger.error(f"Failed to get loans collection for user {uid}")
+            raise Exception(f"Failed to update paid amount for user {uid}")
+
+        doc_ref = col.document(loan_id)
+        loan_doc = doc_ref.get()
+        if not loan_doc.exists:
+            raise Exception(f"Loan {loan_id} not found for user {uid}")
+
+        loan_data = loan_doc.to_dict() or {}
+
+        # Handle both totalLoan and total_loan naming
+        total_loan = (
+            loan_data.get("total_loan") or
+            loan_data.get("totalLoan") or
+            0
+        )
+
+        # Preserve existing loan type
+        loan_type = loan_data.get("loan_type") or loan_data.get("loanType", "Cash Loan")
+
+        # Determine new status
+        if paid_amount >= total_loan:
+            new_status = "Closed"
+        elif paid_amount > 0:
+            new_status = "Active"
+        else:
+            new_status = "Pending"
+
+        # Prepare update payload
+        update_data = {
+            "paid_amount": paid_amount,
+            "status": new_status,
+            "updated_at": datetime.utcnow(),
+            "loan_type": loan_type  # Preserve loan type
+        }
+
+        # Mark closed_at if loan is now fully paid
+        if new_status == "Closed":
+            update_data["closed_at"] = datetime.utcnow()
+
+        # Update Firestore
+        doc_ref.update(update_data)
+        logger.info(
+            f"✅ Updated paid amount for loan {loan_id} (User: {uid}) → {paid_amount}, status: {new_status}"
+        )
+
+        # Fetch updated data
+        updated = doc_ref.get().to_dict()
+        if not updated:
+            raise Exception(f"Failed to retrieve updated loan for user {uid}")
+
+        updated["id"] = loan_id
+
+        # Convert Firestore Timestamps to ISO
+        for time_field in ["created_at", "updated_at", "closed_at"]:
+            if time_field in updated and hasattr(updated[time_field], "isoformat"):
+                updated[time_field] = updated[time_field].isoformat()
+
+        # Convert keys from snake_case → camelCase
+        updated = firestore_repo._convert_keys_to_camel_case(updated)
+
+        # Return LoanRecord model
+        try:
+            return LoanRecord(**updated)
+        except Exception as e:
+            logger.error(f"Error creating LoanRecord for user {uid}: {e}")
+            raise Exception(f"Failed to return updated record: {e}")
+
+    except Exception as e:
+        logger.error(f"❌ Error updating paid amount for loan {loan_id} (User: {uid}): {e}")
+        raise Exception(f"Failed to update paid amount for user {uid}: {e}")
+
+
+@app.get("/test-connection")
+def test_connection():
+    """Test Firebase connection and data creation"""
+    try:
+        # Test Firebase initialization
+        app, db = init_firebase()
+        if not app or not db:
+            return {"error": "Firebase not initialized properly"}
+        
+        # Test creating a user
+        test_user_id = "test_user"
+        user_doc = db.collection('users').document(test_user_id)
+        user_doc.set({
+            'created_at': datetime.utcnow(),
+            'uid': test_user_id
+        })
+        
+        # Test creating a loan
+        loan_doc = user_doc.collection('loans').document()
+        loan_data = {
+            'borrower_name': 'Test Borrower',
+            'phone_number': '1234567890',
+            'emi': 1000,
+            'start_date': '2023-01-01',
+            'end_date': '2023-12-31',
+            'interest_rate': 10,
+            'payment_mode': 'Cash',
+            'total_loan': 12000,
+            'paid_amount': 0,
+            'status': 'Active',
+            'loan_type': 'Cash Loan',  # Added loan_type field
+            'created_at': datetime.utcnow(),
+            'updated_at': datetime.utcnow()
+        }
+        loan_doc.set(loan_data)
+        
+        # Get the loan to verify
+        saved_loan = loan_doc.get().to_dict()
+        saved_loan['id'] = loan_doc.id
+        
+        # Clean up test data
+        loan_doc.delete()
+        user_doc.delete()
+        
+        return {
+            "success": True,
+            "message": "Firebase connection and data creation successful",
+            "test_loan": saved_loan
+        }
+    except Exception as e:
+        return {"error": str(e)}
+    
+@app.post("/notices", response_model=LegalNotice)
+def create_notice(notice: NoticeCreate, request: Request, uid: str = None):
+    uid = uid or request.headers.get('x-dev-uid')
+    if not uid:
+        raise HTTPException(status_code=400, detail="User ID (uid) is required for creating notices")
+    
+    try:
+        # Use dict(by_alias=False) to get snake_case field names for Firestore
+        data = notice.dict(by_alias=False)
+        saved = firestore_repo.create_notice_for_user(uid, data)
+        return saved
+    except Exception as e:
+        logger.error(f"Error creating notice in Firestore: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to create notice: {e}")
+
+@app.put("/notices/{notice_id}", response_model=LegalNotice)
+def update_notice(notice_id: str, notice_update: NoticeUpdate, request: Request, uid: str = None):
+    uid = uid or request.headers.get('x-dev-uid')
+    if not uid:
+        raise HTTPException(status_code=400, detail="User ID (uid) is required for updating notices")
+    
+    try:
+        # Use dict(by_alias=False) to get snake_case field names for Firestore
+        update_data = notice_update.dict(by_alias=False, exclude_unset=True)
+        updated = firestore_repo.update_notice_for_user(uid, notice_id, update_data)
+        return updated
+    except Exception as e:
+        logger.error(f"Error updating notice in Firestore: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to update notice: {e}")
+
+@app.delete("/notices/{notice_id}")
+def delete_notice(notice_id: str, request: Request, uid: str = None):
+    uid = uid or request.headers.get('x-dev-uid')
+    if not uid:
+        raise HTTPException(status_code=400, detail="User ID (uid) is required for deleting notices")
+    
+    try:
+        firestore_repo.delete_notice_for_user(uid, notice_id)
+        return {"message": "Notice deleted successfully"}
+    except Exception as e:
+        logger.error(f"Error deleting notice in Firestore: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to delete notice: {e}")
+    

@@ -1,0 +1,59 @@
+{
+  "name": "vite-electron-app",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "main": "main.cjs",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:vite\" \"wait-on http://localhost:8080 && npm run dev:electron\"",
+    "dev:vite": "vite",
+    "dev:electron": "electron .",
+    "build": "vite build",
+    "start-electron": "electron .",
+    "dist": "npm run build && electron-builder --publish=never",
+    "clean": "rm -rf build release"
+  },
+  "build": {
+    "appId": "com.yourcompany.vitereactapp",
+    "productName": "Your App Name",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "main.cjs",
+      "preload.js",
+      "build/**/*",
+      "package.json"
+    ],
+    "extraMetadata": {
+      "main": "main.cjs"
+    },
+    "win": {
+      "target": "nsis"
+    },
+    "mac": {
+      "target": "dmg"
+    },
+    "linux": {
+      "target": "AppImage"
+    },
+    "asar": false
+  },
+  "dependencies": {
+    "@tanstack/react-query": "^5.90.12",
+    "bootstrap": "^5.3.8",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-icons": "^5.5.0",
+    "react-router-dom": "^7.11.0",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react-swc": "^3.5.0",
+    "concurrently": "^9.2.1",
+    "electron": "^39.2.4",
+    "electron-builder": "^26.0.12",
+    "vite": "^5.4.1",
+    "wait-on": "^9.0.3"
+  }
+}

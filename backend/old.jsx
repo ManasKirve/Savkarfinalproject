@@ -1,0 +1,234 @@
+
+const API_BASE_URL = 'http://localhost:8000'; 
+
+class ApiService {
+  // Helper method for making API requests
+  static async request(endpoint, options = {}) {
+    const url = `${API_BASE_URL}${endpoint}`;
+    
+    const defaultOptions = {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    };
+
+    const config = { ...defaultOptions, ...options };
+    
+    // Your backend expects camelCase due to by_alias=True, so NO conversion needed
+    if (config.body && typeof config.body === 'object') {
+      try {
+        config.body = JSON.stringify(config.body);
+      } catch (e) {
+        config.body = JSON.stringify(config.body);
+      }
+    }
+
+    try {
+      const response = await fetch(url, config);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error(`ApiService: Error response: ${errorText}`);
+        throw new Error(`API Error: ${response.status} ${response.statusText}`);
+      }
+      
+      if (response.status === 204) return null;
+      
+      const data = await response.json();
+      
+      // Your backend returns snake_case, convert to camelCase for frontend
+      const camelize = (obj) => {
+        if (Array.isArray(obj)) {
+          return obj.map(camelize);
+        } else if (obj && typeof obj === 'object') {
+          return Object.keys(obj).reduce((acc, key) => {
+            const camelKey = key.replace(/_([a-z])/g, (_, c) => c.toUpperCase());
+            acc[camelKey] = camelize(obj[key]);
+            return acc;
+          }, {});
+        }
+        return obj;
+      };
+
+      const camelizedData = camelize(data);
+      
+      return camelizedData;
+    } catch (error) {
+      console.error(`ApiService: Request failed for ${url}:`, error);
+      throw error;
+    }
+  }
+
+  // Dashboard
+  static async getDashboardSummary() {
+    const response = await this.request('/dashboard/summary');
+    // Handle if the response is wrapped in a data object
+    return response.data || response;
+  }
+
+  // Loan Records (Global endpoints - NO UID required)
+  static async getAllLoans() {
+    const response = await this.request('/loans');
+    // Handle if the response is wrapped in a data object
+    if (response.data && Array.isArray(response.data)) {
+      return response.data;
+    }
+    return Array.isArray(response) ? response : [];
+  }
+
+  static async createLoan(loanData) {
+    return this.request('/loans', {
+      method: 'POST',
+      body: loanData,
+    });
+  }
+
+  static async updateLoan(loanId, loanData) {
+    return this.request(`/loans/${loanId}`, {
+      method: 'PUT',
+      body: loanData,
+    });
+  }
+
+  static async deleteLoan(loanId) {
+    return this.request(`/loans/${loanId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  static async updatePaidAmount(loanId, paidAmount) {
+    return this.request(`/loans/${loanId}/paid-amount`, {
+      method: 'PUT',
+      body: { paidAmount },
+    });
+  }
+
+  // Documents (Global endpoints - NO UID required)
+  static async getDocumentsByLoanId(loanId) {
+    const response = await this.request(`/loans/${loanId}/documents`);
+    // Handle if the response is wrapped in a data object
+    return response.data || response;
+  }
+
+  static async createDocument(documentData) {
+    return this.request('/documents', {
+      method: 'POST',
+      body: documentData,
+    });
+  }
+
+  static async deleteDocument(docId) {
+    return this.request(`/documents/${docId}`, {
+      method: 'DELETE',
+    });
+  }
+
+  // Profile endpoints
+  static async getLoanProfile(loanId) {
+    try {
+      const response = await this.request(`/loans/${loanId}/profile`);
+      // The backend returns the profile directly, not wrapped in a data object
+      return response;
+    } catch (error) {
+      console.error("Failed to fetch loan profile:", error);
+      throw error;
+    }
+  }
+  
+  static async createLoanProfile(loanId, profileData) {
+    
+    return this.request(`/loans/${loanId}/profile`, {
+      method: 'POST',
+      body: profileData,
+    });
+  }
+
+  static async updateLoanProfile(loanId, profileData) {
+    
+    return this.request(`/loans/${loanId}/profile`, {
+      method: 'PUT',
+      body: profileData,
+    });
+  }
+
+  // Per-user loans list - OPTIONAL UID
+  static async getMyLoans(uid) {
+    if (uid) {
+      const response = await this.request(`/users/me/loans`, {
+        headers: {
+          'x-dev-uid': uid
+        }
+      });
+      // Handle if the response is wrapped in a data object
+      return response.data || response;
+    } else {
+      return this.getAllLoans(); // Fallback to global
+    }
+  }
+
+  // Legal Notices
+  static async getAllNotices() {
+    const response = await this.request('/notices');
+    // Handle if the response is wrapped in a data object
+    return response.data || response;
+  }
+
+  // Health check
+  static async healthCheck() {
+    return this.request('/health');
+  }
+
+  // Debug endpoints
+  static async debugFirebase() {
+    return this.request('/debug/firebase');
+  }
+
+  static async debugUserLoans(uid) {
+    return this.request(`/debug/user/${uid}/loans`);
+  }
+
+  static async debugSampleLoans() {
+    return this.request('/debug/sample-loans');
+  }
+  
+  // Add the getBaseUrl method
+  static getBaseUrl() {
+    return API_BASE_URL;
+  }
+  // Add these methods to your ApiService class
+
+// Legal Notices
+static async getAllNotices() {
+  const response = await this.request('/notices');
+  // Handle if the response is wrapped in a data object
+  return response.data || response;
+}
+
+// Example of creating a notice with UID
+static async createNotice(noticeData, uid) {
+  return this.request('/notices', {
+    method: 'POST',
+    body: noticeData,
+    headers: uid ? { 'x-dev-uid': uid } : {}
+  });
+}
+
+// Example of updating a notice with UID
+static async updateNotice(noticeId, noticeData, uid) {
+  return this.request(`/notices/${noticeId}`, {
+    method: 'PUT',
+    body: noticeData,
+    headers: uid ? { 'x-dev-uid': uid } : {}
+  });
+}
+
+// Example of deleting a notice with UID
+static async deleteNotice(noticeId, uid) {
+  return this.request(`/notices/${noticeId}`, {
+    method: 'DELETE',
+    headers: uid ? { 'x-dev-uid': uid } : {}
+  });
+}
+}
+
+export default ApiService;
