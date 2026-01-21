@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
 
 const Login = () => {
@@ -10,9 +10,6 @@ const Login = () => {
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
-
-  
-  const PERMANENT_PASSWORD = '2BG2DErB!';
 
   const handleChange = (e) => {
     setCredentials({
@@ -66,15 +63,16 @@ const Login = () => {
     }
 
     try {
-      
-      const changedPassword = "pass@123";
+      // Call the login API endpoint
+      const response = await fetch("http://localhost:8000/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password })
+      });
 
-      // ✅ Check login conditions
-      const isValidUser = username === 'vishal' || username === 'manas';
-      const isPasswordValid =
-        password === PERMANENT_PASSWORD || password === changedPassword;
+      const data = await response.json();
 
-      if (isValidUser && isPasswordValid) {
+      if (data.success) {
         localStorage.setItem('userType', 'admin');
         localStorage.setItem('username', username);
         localStorage.setItem('isAuthenticated', 'true');
@@ -85,7 +83,7 @@ const Login = () => {
         
         navigate('/dashboard');
       } else {
-        setError('Invalid username or password');
+        setError(data.message || 'Invalid username or password');
       }
     } catch (err) {
       setError('Authentication failed. Please try again.');
@@ -149,12 +147,6 @@ const Login = () => {
                   <button type="submit" className="btn btn-primary btn-lg py-2 mt-2">
                     Login
                   </button>
-                </div>
-
-                <div className="text-center mt-3">
-                  <Link to="/forgot-password" className="text-decoration-none">
-                    Forgot Password?
-                  </Link>
                 </div>
               </form>
             </div>

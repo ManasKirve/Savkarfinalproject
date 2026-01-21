@@ -534,6 +534,43 @@ def create_my_document(document: DocumentCreate, request: Request, uid: str = No
         logger.error(f"Error creating document in Firestore: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to create document: {e}")
 
+
+# ... (all your existing endpoints for loans, documents, notices, etc.)
+
+# Add the login endpoint right here, before the health check
+from pydantic import BaseModel
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+@app.post("/login")
+def login(data: LoginRequest):
+    try:
+        # Initialize Firebase
+        _, db = init_firebase()
+        if not db:
+            return {"success": False, "message": "Database connection failed"}
+        
+        # Query admin_users collection
+        users_ref = db.collection("users")
+        query = users_ref.where("username", "==", data.username).where(
+            "password", "==", data.password
+        ).limit(1).stream()
+        
+        # Check if user exists
+        for _ in query:
+            return {"success": True}
+        
+        return {"success": False, "message": "Invalid credentials"}
+    except Exception as e:
+        logger.error(f"Error during login: {e}")
+        return {"success": False, "message": "Login failed"}
+
+# Add health check endpoint
+@app.get("/health")
+def health_check():
+    return {"status": "healthy", "firebase": "initialized" if init_firebase else "not initialized"}
 # Add health check endpoint
 @app.get("/health")
 def health_check():
