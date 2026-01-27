@@ -305,7 +305,7 @@ const handleCardClick = (status) => {
       </div>
 
       <div className="row">
-        <div className="col-md-4 mb-3">
+        <div className="col-md-3 mb-3">
           <div
             id="card-All"
             className="card stat-card stat-card-custom stat-card-primary cursor-pointer"
@@ -325,7 +325,7 @@ const handleCardClick = (status) => {
             </div>
           </div>
         </div>
-        <div className="col-md-4 mb-3">
+        <div className="col-md-3 mb-3">
           <div
             id="card-Active"
             className="card stat-card stat-card-custom stat-card-success cursor-pointer"
@@ -345,29 +345,8 @@ const handleCardClick = (status) => {
             </div>
           </div>
         </div>
-        <div className="col-md-4 mb-3">
-          <div
-            id="card-Gap"
-            className="card stat-card stat-card-custom stat-card-warning cursor-pointer"
-          >
-            <div className="card-body stat-card-body">
-              <div className="d-flex justify-content-between align-items-center">
-                <div>
-                  <h6 className="card-title stat-card-title mb-0">
-                    GAPs (Last 31 Days)
-                  </h6>
-                  <h3 className="stat-card-value mb-0">
-                    {gapCountLast31Days}
-                  </h3>
-                </div>
-                <div className="stat-card-icon">
-                  <i className="fas fa-exclamation-triangle"></i>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div className="col-md-4 mb-3">
+        
+        <div className="col-md-3 mb-3">
           <div
             id="card-Closed"
             className="card stat-card stat-card-custom stat-card-danger cursor-pointer"
@@ -380,6 +359,29 @@ const handleCardClick = (status) => {
                 </div>
                 <div className="stat-card-icon">
                   <i className="fas fa-archive"></i>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="col-md-3 mb-3">
+          <div
+            id="card-Gap"
+            className="card stat-card stat-card-custom stat-card-warning cursor-pointer"
+          >
+            <div className="card-body stat-card-body">
+              <div className="d-flex justify-content-between align-items-center">
+                <div>
+                  <h6 className="card-title stat-card-title mb-0">
+                    GAPs
+                  </h6>
+                  <h3 className="stat-card-value mb-0">
+                    {gapCountLast31Days}
+                  </h3>
+                </div>
+                <div className="stat-card-icon">
+                  <i className="fas fa-exclamation-triangle"></i>
                 </div>
               </div>
             </div>

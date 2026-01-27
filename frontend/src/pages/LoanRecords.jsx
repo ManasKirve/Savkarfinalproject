@@ -382,7 +382,7 @@ const LoanRecords = () => {
             onChange={(e) => setStatusFilter(e.target.value)}>
             <option value="all">All Status</option>
             <option value="Active">Active</option>
-            
+            <option value="Pending">Pending</option>
             <option value="Closed">Closed</option>
           </select>
         </div>
@@ -808,7 +808,7 @@ const LoanRecords = () => {
                             }
                             required>
                             <option value="Active">Active</option>
-                            
+                            <option value="Pending">Pending</option>
                             <option value="Closed">Closed</option>
                           </select>
                         </div>

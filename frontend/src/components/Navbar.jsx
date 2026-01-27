@@ -1,7 +1,7 @@
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
-const Navbar = () => {
+const Navbar = ({ toggleSidebar }) => {
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -31,6 +31,13 @@ const Navbar = () => {
   return (
     <nav className="navbar navbar-expand-lg navbar-light navbar-custom fixed-top">
       <div className="container-fluid">
+        <button
+          className="btn btn-outline-secondary navbar-toggle-btn me-3"
+          onClick={toggleSidebar}
+          type="button">
+          <i className="fas fa-bars"></i>
+        </button>
+
         <div className="d-flex align-items-center navbar-brand-section">
           <h4 className="ms-3">Money Lending Dashboard</h4>
         </div>

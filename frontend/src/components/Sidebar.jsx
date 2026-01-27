@@ -40,21 +40,6 @@ const Sidebar = ({ isCollapsed }) => {
       className={`sidebar bg-light border-end ${
         isCollapsed ? "collapsed" : ""
       }`}>
-      {/* Logo Section */}
-      <div className="p-3 border-bottom d-none d-md-block">
-        <div className="d-flex align-items-center">
-          <div className="app-logo bg-primary text-white rounded d-flex align-items-center justify-content-center me-3">
-            ML
-          </div>
-
-          {!isCollapsed && (
-            <div>
-              <h6 className="mb-0 fw-bold">Money Lender</h6>
-              <small className="text-muted">Financial Services</small>
-            </div>
-          )}
-        </div>
-      </div>
 
       {/* Navigation List */}
       <div className="p-md-3 p-0 position-absolute">
