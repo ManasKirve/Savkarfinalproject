@@ -28,8 +28,15 @@ class LoanStatus(str, Enum):
 # Add LoanType enum
 class LoanType(str, Enum):
     CASH_LOAN = "Cash Loan"
-    GOLD_LOAN = "Gold Loan"
+    GOVERNMENT_SERVANT_LOAN = "Government Servant Loan"
+    MERCHANT_LOAN = "Merchant Loan"
+    FARM_LOAN = "Farm Loan"
     HOME_LOAN = "Home Loan"
+    PROPERTIES_MORTGAGE_LOAN = "Properties Mortgage Loan"
+    VEHICLE_LOAN = "Vehicle Loan"
+    GOLD_LOAN = "Gold Loan"
+    OBJECTS_LOAN = "Objects Loan"
+
 
 class NoticeStatus(str, Enum):
     PENDING = "Pending"

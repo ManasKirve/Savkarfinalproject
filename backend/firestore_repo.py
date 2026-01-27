@@ -151,7 +151,8 @@ def get_loans_for_user(uid: str) -> List[Dict[str, Any]]:
             logger.error(f"Failed to get loans collection for user {uid}")
             return []
             
-        docs = col.stream()
+        docs = col.order_by("created_at", direction="DESCENDING").stream()
+
         out = []
         for d in docs:
             data = d.to_dict()
