@@ -35,7 +35,7 @@ const LoanRecords = () => {
   // Slice data for current page
   const currentLoans = filteredLoans?.slice(
     (currentPage - 1) * rowsPerPage,
-    currentPage * rowsPerPage
+    currentPage * rowsPerPage,
   );
 
   const handlePageChange = (page) => {
@@ -60,7 +60,7 @@ const LoanRecords = () => {
       } catch (healthError) {
         console.error("Health check failed:", healthError);
         setError(
-          "Backend server is not reachable. Please check if the server is running."
+          "Backend server is not reachable. Please check if the server is running.",
         );
         return;
       }
@@ -69,7 +69,7 @@ const LoanRecords = () => {
       const savkarUserId = "savkar_user_001";
       const res = await ApiService.getMyLoans(savkarUserId);
 
-      let loansData = Array.isArray(res) ? res : res?.data ?? [];
+      let loansData = Array.isArray(res) ? res : (res?.data ?? []);
       setLoans(loansData);
       setFilteredLoans(loansData);
     } catch (error) {
@@ -319,7 +319,7 @@ const LoanRecords = () => {
               onClick={async () => {
                 try {
                   const response = await fetch(
-                    "http://localhost:8000/test-connection"
+                    "http://localhost:8000/test-connection",
                   );
                   const data = await response.json();
                   alert(`Connection Test: ${JSON.stringify(data, null, 2)}`);
@@ -424,17 +424,20 @@ const LoanRecords = () => {
                       <td>
                         <span className="text-primary">{loan.paymentMode}</span>
                       </td>
-                      <td>{new Date(loan.startDate).toLocaleDateString("en-GB")}</td>
-                      <td>{new Date(loan.endDate).toLocaleDateString("en-GB")}</td>
-
+                      <td>
+                        {new Date(loan.startDate).toLocaleDateString("en-GB")}
+                      </td>
+                      <td>
+                        {new Date(loan.endDate).toLocaleDateString("en-GB")}
+                      </td>
                       <td>
                         <span
                           className={`badge ${
                             loan.status === "Active"
                               ? "bg-success"
                               : loan.status === "Closed"
-                              ? "bg-secondary"
-                              : "bg-warning"
+                                ? "bg-secondary"
+                                : "bg-warning"
                           }`}>
                           {loan.status}
                         </span>
@@ -454,8 +457,8 @@ const LoanRecords = () => {
                                 loan.status === "Closed"
                                   ? "bg-success"
                                   : loan.status === "Pending"
-                                  ? "bg-warning"
-                                  : "bg-primary"
+                                    ? "bg-warning"
+                                    : "bg-primary"
                               }`}
                               style={{
                                 width: `${
@@ -470,8 +473,8 @@ const LoanRecords = () => {
                             <small
                               className="text-muted"
                               style={{ whiteSpace: "nowrap" }}>
-                              ₹{(loan.paidAmount || 0).toLocaleString("en-IN")} / ₹
-                              {(loan.totalLoan || 0).toLocaleString("en-IN")}
+                              ₹{(loan.paidAmount || 0).toLocaleString("en-IN")}{" "}
+                              / ₹{(loan.totalLoan || 0).toLocaleString("en-IN")}
                             </small>
                             <br />
                             <small
@@ -480,7 +483,7 @@ const LoanRecords = () => {
                               {Math.round(
                                 ((loan.paidAmount || 0) /
                                   (loan.totalLoan || 1)) *
-                                  100
+                                  100,
                               )}
                               % paid
                             </small>
@@ -693,16 +696,21 @@ const LoanRecords = () => {
                           <div className="input-group">
                             <span className="input-group-text">₹</span>
                             <input
-                              type="number"
+                              type="text"
+                              inputMode="numeric"
                               className="form-control"
                               placeholder="Enter total loan amount"
                               value={formData.totalLoan}
-                              onChange={(e) =>
-                                setFormData({
-                                  ...formData,
-                                  totalLoan: e.target.value,
-                                })
-                              }
+                              onChange={(e) => {
+                                const value = e.target.value;
+                                // allow only digits
+                                if (/^\d*$/.test(value)) {
+                                  setFormData({
+                                    ...formData,
+                                    totalLoan: value,
+                                  });
+                                }
+                              }}
                               required
                             />
                           </div>
@@ -714,20 +722,23 @@ const LoanRecords = () => {
                           </label>
                           <div className="input-group">
                             <input
-                              type="number"
-                              step="0.1"
+                              type="text"
+                              inputMode="decimal"
                               className="form-control"
                               placeholder="Enter interest rate"
                               value={formData.interestRate}
-                              onChange={(e) =>
-                                setFormData({
-                                  ...formData,
-                                  interestRate: e.target.value,
-                                })
-                              }
+                              onChange={(e) => {
+                                const value = e.target.value;
+                                if (/^\d*\.?\d*$/.test(value)) {
+                                  setFormData({
+                                    ...formData,
+                                    interestRate: value,
+                                  });
+                                }
+                              }}
                               required
                             />
-                            <span className="input-group-text">%</span>
+                            <span className="input-group-text-last">%</span>
                           </div>
                         </div>
 
@@ -736,16 +747,21 @@ const LoanRecords = () => {
                           <div className="input-group">
                             <span className="input-group-text">₹</span>
                             <input
-                              type="number"
+                              type="text"
+                              inputMode="numeric"
                               className="form-control"
                               placeholder="Enter EMI amount"
                               value={formData.emi}
-                              onChange={(e) =>
-                                setFormData({
-                                  ...formData,
-                                  emi: e.target.value,
-                                })
-                              }
+                              onChange={(e) => {
+                                const value = e.target.value;
+                                // allow only numbers
+                                if (/^\d*$/.test(value)) {
+                                  setFormData({
+                                    ...formData,
+                                    emi: value,
+                                  });
+                                }
+                              }}
                               required
                             />
                           </div>
@@ -755,16 +771,21 @@ const LoanRecords = () => {
                           <div className="input-group">
                             <span className="input-group-text">₹</span>
                             <input
-                              type="number"
+                              type="text"
+                              inputMode="numeric"
                               className="form-control"
                               placeholder="Enter paid amount"
                               value={formData.paidAmount}
-                              onChange={(e) =>
-                                setFormData({
-                                  ...formData,
-                                  paidAmount: e.target.value,
-                                })
-                              }
+                              onChange={(e) => {
+                                const value = e.target.value;
+                                // allow only digits
+                                if (/^\d*$/.test(value)) {
+                                  setFormData({
+                                    ...formData,
+                                    paidAmount: value,
+                                  });
+                                }
+                              }}
                               required
                             />
                           </div>
