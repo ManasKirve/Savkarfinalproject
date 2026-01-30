@@ -52,8 +52,9 @@ const Dashboard = () => {
         setAllLoans(loansData);
         setLoans(loansData);
         
-        const gapCount = calculateGapCountLast31Days(loansData);
+        const gapCount = calculateGapCount(loansData);
         setGapCountLast31Days(gapCount);
+
 
         const totalEmi = loansData.reduce(
           (sum, loan) => sum + Number(loan.emi || 0),
@@ -157,29 +158,22 @@ const handleCardClick = (status) => {
     return dueDate;
   };
 
-  const calculateGapCountLast31Days = (loans) => {
-    const now = new Date();
-    const last31Days = new Date();
-    last31Days.setDate(now.getDate() - 31);
+ const calculateGapCount = (loans) => {
+  let count = 0;
 
-    let count = 0;
+  loans.forEach((loan) => {
+    if (!Array.isArray(loan.paymentRecords)) return;
 
-    loans.forEach((loan) => {
-      if (!loan.paymentRecords || !Array.isArray(loan.paymentRecords)) return;
-
-      loan.paymentRecords.forEach((record) => {
-        if (
-          record.status === "Gap" &&
-          record.date &&
-          new Date(record.date) >= last31Days
-        ) {
-          count++;
-        }
-      });
+    loan.paymentRecords.forEach((record) => {
+      if (record.status === "Gap") {
+        count++;
+      }
     });
+  });
 
-    return count;
-  };
+  return count;
+};
+
 
   // Filter + Sort
   useEffect(() => {

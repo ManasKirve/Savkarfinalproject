@@ -37,23 +37,23 @@ const CustomerProfile = () => {
 
   const [viewingDocument, setViewingDocument] = useState(null);
 
-  useEffect(() => {
-    if (!selectedLoan || !paymentRecords) return;
+  // useEffect(() => {
+  //   if (!selectedLoan || !paymentRecords) return;
 
-    // Calculate total paid amount
-    const totalPaid = paymentRecords
-      .filter((r) => r.status === "Paid" && r.amount)
-      .reduce((sum, r) => sum + parseFloat(r.amount || 0), 0);
+  //   // Calculate total paid amount
+  //   const totalPaid = paymentRecords
+  //     .filter((r) => r.status === "Paid" && r.amount)
+  //     .reduce((sum, r) => sum + parseFloat(r.amount || 0), 0);
 
-    // Update local state only
-    setSelectedLoan((prev) => ({
-      ...prev,
-      paidAmount: totalPaid,
-    }));
+  //   // Update local state only
+  //   setSelectedLoan((prev) => ({
+  //     ...prev,
+  //     paidAmount: totalPaid,
+  //   }));
 
-    // Remove the API call to updatePaidAmount since it's causing issues
-    // The paid amount will be updated when the entire profile is saved
-  }, [paymentRecords, selectedLoan?.id]);
+  //   // Remove the API call to updatePaidAmount since it's causing issues
+  //   // The paid amount will be updated when the entire profile is saved
+  // }, [paymentRecords, selectedLoan?.id]);
 
   useEffect(() => {
     const fetchLoan = async () => {
