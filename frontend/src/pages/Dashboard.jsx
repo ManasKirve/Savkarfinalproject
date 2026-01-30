@@ -80,8 +80,12 @@ const Dashboard = () => {
       filtered = filtered.filter((loan) => loan.status === "Active");
     } else if (statusFilter === "Closed") {
       filtered = filtered.filter((loan) => loan.status === "Closed");
-    } else if (statusFilter === "Pending") {
-      filtered = filtered.filter((loan) => loan.status === "Pending");
+    } else if (statusFilter === "Gap") {
+      filtered = filtered.filter((loan) => {
+        if (!Array.isArray(loan.paymentRecords) || loan.paymentRecords.length === 0) return false;
+        const last = loan.paymentRecords[loan.paymentRecords.length - 1];
+        return last && last.status === "Gap";
+      });
     }
 
     // Date Filter
@@ -158,22 +162,22 @@ const handleCardClick = (status) => {
     return dueDate;
   };
 
- const calculateGapCount = (loans) => {
+const calculateGapCount = (loans) => {
   let count = 0;
 
   loans.forEach((loan) => {
-    if (!Array.isArray(loan.paymentRecords)) return;
+    if (!Array.isArray(loan.paymentRecords) || loan.paymentRecords.length === 0)
+      return;
 
-    loan.paymentRecords.forEach((record) => {
-      if (record.status === "Gap") {
-        count++;
-      }
-    });
+    const lastRecord = loan.paymentRecords[loan.paymentRecords.length - 1];
+
+    if (lastRecord.status === "Gap") {
+      count++;
+    }
   });
 
   return count;
 };
-
 
   // Filter + Sort
   useEffect(() => {
@@ -361,14 +365,15 @@ const handleCardClick = (status) => {
 
         <div className="col-md-3 mb-3">
           <div
-            id="card-Gap"
-            className="card stat-card stat-card-custom stat-card-warning cursor-pointer"
-          >
+              id="card-Gap"
+              className="card stat-card stat-card-custom stat-card-warning cursor-pointer"
+              onClick={() => handleCardClick("Gap")}
+            >
             <div className="card-body stat-card-body">
               <div className="d-flex justify-content-between align-items-center">
                 <div>
                   <h6 className="card-title stat-card-title mb-0">
-                    GAPs
+                    Pending (Gap)
                   </h6>
                   <h3 className="stat-card-value mb-0">
                     {gapCountLast31Days}

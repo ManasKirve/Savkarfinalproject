@@ -169,7 +169,16 @@ const LoanRecords = () => {
     }
 
     if (statusFilter !== "all") {
-      filtered = filtered.filter((loan) => loan.status === statusFilter);
+      if (statusFilter === "Pending") {
+        filtered = filtered.filter((loan) => {
+          if (loan.status === "Pending") return true;
+          if (!Array.isArray(loan.paymentRecords) || loan.paymentRecords.length === 0) return false;
+          const last = loan.paymentRecords[loan.paymentRecords.length - 1];
+          return last && last.status === "Gap";
+        });
+      } else {
+        filtered = filtered.filter((loan) => loan.status === statusFilter);
+      }
     }
 
     setFilteredLoans(filtered);
@@ -645,6 +654,7 @@ const LoanRecords = () => {
                             className="form-control"
                             placeholder="Enter phone number"
                             maxLength={10}
+                            minLength={10}
                             value={formData.phoneNumber}
                             onChange={(e) =>
                               setFormData({
@@ -829,7 +839,6 @@ const LoanRecords = () => {
                             }
                             required>
                             <option value="Active">Active</option>
-                            <option value="Pending">Pending</option>
                             <option value="Closed">Closed</option>
                           </select>
                         </div>
