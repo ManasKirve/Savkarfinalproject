@@ -1,0 +1,169 @@
+/* Background animation */
+.login-bg {
+  min-height: 100vh;
+  position: relative;
+  background: url("/images/login-bg.jpg") center/cover no-repeat;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+@keyframes gradientMove {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+/* Card entrance animation */
+.login-card {
+  animation: slideUpFade 0.8s ease forwards;
+}
+
+@keyframes slideUpFade {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Input focus glow */
+.form-control:focus {
+  border-color: #0d6efd;
+  box-shadow: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
+}
+
+/* Password eye hover */
+.password-toggle:hover {
+  color: #0d6efd;
+  transform: scale(1.1);
+}
+
+/* Button animation */
+.login-btn {
+  position: relative;
+  overflow: hidden;
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.login-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 20px rgba(13, 110, 253, 0.3);
+}
+
+/* Error animation */
+.alert {
+  animation: shake 0.4s ease;
+}
+
+@keyframes shake {
+  0% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-5px);
+  }
+  50% {
+    transform: translateX(5px);
+  }
+  75% {
+    transform: translateX(-5px);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+/* Floating currency background */
+.currency-bg {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.currency-bg span {
+  position: absolute;
+  font-size: 3rem;
+  font-weight: bold;
+  opacity: 0.8;
+  color: #212529;
+  filter: blur(0.5px);
+  animation: floatCurrency linear infinite;
+}
+.opacity{
+    opacity: 0.9;
+}
+.currency-bg span:nth-child(even) {
+  color: #0d6efd; /* subtle blue $ */
+  opacity: 0.7;
+}
+/* Different positions + speeds */
+.currency-bg span:nth-child(1) {
+  left: 10%;
+  animation-duration: 18s;
+  font-size: 6.5rem;
+}
+.currency-bg span:nth-child(2) {
+  left: 25%;
+  animation-duration: 22s;
+  font-size: 5rem;
+}
+.currency-bg span:nth-child(3) {
+  left: 40%;
+  animation-duration: 16s;
+  font-size: 4rem;
+}
+.currency-bg span:nth-child(4) {
+  left: 55%;
+  animation-duration: 20s;
+  font-size: 9rem;
+}
+.currency-bg span:nth-child(5) {
+  left: 70%;
+  animation-duration: 26s;
+  font-size: 8.8rem;
+}
+.currency-bg span:nth-child(6) {
+  left: 82%;
+  animation-duration: 19s;
+  font-size: 4rem;
+}
+.currency-bg span:nth-child(7) {
+  left: 15%;
+  animation-duration: 30s;
+  font-size: 5rem;
+}
+.currency-bg span:nth-child(8) {
+  left: 90%;
+  animation-duration: 24s;
+  font-size: 3rem;
+}
+
+/* Floating animation */
+@keyframes floatCurrency {
+  0% {
+    transform: translateY(110vh) rotate(0deg);
+  }
+  100% {
+    transform: translateY(-120vh) rotate(360deg);
+  }
+}
+
+/* Ensure card stays on top */
+.login-card {
+  position: relative;
+  z-index: 2;
+}
