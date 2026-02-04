@@ -6,6 +6,8 @@ const CustomerProfile = () => {
   const { id } = useParams();
   const navigate = useNavigate();
 
+
+  const [successMsg, setSuccessMsg] = useState("");
   const [selectedLoan, setSelectedLoan] = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -54,6 +56,18 @@ const CustomerProfile = () => {
   //   // Remove the API call to updatePaidAmount since it's causing issues
   //   // The paid amount will be updated when the entire profile is saved
   // }, [paymentRecords, selectedLoan?.id]);
+
+
+    useEffect(() => {
+  if (successMsg) {
+    const timer = setTimeout(() => {
+      setSuccessMsg("");
+    }, 3000);
+
+    return () => clearTimeout(timer);
+  }
+}, [successMsg]);
+
 
   useEffect(() => {
     const fetchLoan = async () => {
@@ -294,7 +308,8 @@ const CustomerProfile = () => {
       };
 
       await ApiService.updateLoan(selectedLoan.id, updatedData);
-      alert("Profile updated successfully!");
+      setSelectedLoan(updatedData);
+      setSuccessMsg("✅ Profile updated successfully!");
     } catch (err) {
       console.error(err);
       alert("Failed to update profile (API not responding).");
@@ -331,6 +346,47 @@ const CustomerProfile = () => {
 
       {error && <p className="text-warning text-center mb-3">{error}</p>}
 
+
+{/* Success Message Modal */}
+{successMsg && (
+  <div
+    className="modal show d-block"
+    tabIndex="-1"
+    style={{ backgroundColor: "rgba(0,0,0,0.4)" }}
+  >
+    <div className="modal-dialog modal-dialog-centered">
+      <div className="modal-content">
+
+        <div className="modal-header bg-success text-white">
+          <h5 className="modal-title">Success</h5>
+          <button
+            type="button"
+            className="btn-close btn-close-white"
+            onClick={() => setSuccessMsg("")}
+          ></button>
+        </div>
+
+        <div className="modal-body text-center py-4">
+          <h5>{successMsg}</h5>
+        </div>
+
+        <div className="modal-footer justify-content-center">
+          <button
+            className="btn btn-success px-4"
+            onClick={() => setSuccessMsg("")}
+          >
+            OK
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+)}
+
+
+
+     
       {/* ---------- HEADER PROFILE CARD ---------- */}
       <div className="card border-0 shadow-sm mb-4 rounded-3 p-3">
         <div className="row align-items-center g-3">
@@ -352,12 +408,12 @@ const CustomerProfile = () => {
                   objectFit: "cover",
                 }}
               />
-              <label
+              {/* <label
                 htmlFor="profile-upload"
                 className="position-absolute bottom-0 end-0 bg-primary rounded-circle p-2 shadow-sm"
                 style={{ cursor: "pointer" }}>
                 <i className="fas fa-camera text-white"></i>
-              </label>
+              </label> */}
               <input
                 id="profile-upload"
                 type="file"

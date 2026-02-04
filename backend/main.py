@@ -567,6 +567,36 @@ def login(data: LoginRequest):
         logger.error(f"Error during login: {e}")
         return {"success": False, "message": "Login failed"}
 
+
+
+class ResetPasswordRequest(BaseModel):
+    username: str
+    newPassword: str
+
+
+@app.post("/reset-password")
+def reset_password(data: ResetPasswordRequest):
+    _, db = init_firebase()
+
+    users_ref = db.collection("users")
+    query = users_ref.where("username", "==", data.username).limit(1).stream()
+
+    user_doc = None
+    for doc in query:
+        user_doc = doc
+        break
+
+    if not user_doc:
+        return {"success": False, "message": "User not found"}
+
+    user_doc.reference.update({
+        "password": data.newPassword
+    })
+
+    return {"success": True}
+
+
+
 # Add health check endpoint
 @app.get("/health")
 def health_check():
